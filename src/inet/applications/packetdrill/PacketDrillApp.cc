@@ -92,7 +92,7 @@ PacketDrillApp::PacketDrillApp()
 
 void PacketDrillApp::initialize(int stage)
 {
-    cSimpleModule::initialize(stage);
+    TcpAppBase::initialize(stage);
 
     if (stage == INITSTAGE_LOCAL) {
         // parameters
@@ -114,11 +114,8 @@ void PacketDrillApp::initialize(int stage)
         simStartTime = simTime();
         simRelTime = simTime();
     } else if (stage == INITSTAGE_APPLICATION_LAYER) {
-        cModule *node = findContainingNode(this);
-        NodeStatus *nodeStatus = node ? check_and_cast_nullable<NodeStatus *>(node->getSubmodule("status")) : nullptr;
-        bool isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
-        if (!isOperational)
-            throw cRuntimeError("This module doesn't support starting in node DOWN state");
+        if (operationalState != OPERATING)
+            throw cRuntimeError("This module doesn't support starting in NOT_OPERATING state");
         pd = new PacketDrill(this);
         config = new PacketDrillConfig();
         script = new PacketDrillScript(par("scriptFile").stringValue());
@@ -162,16 +159,10 @@ void PacketDrillApp::handleMessageWhenUp(cMessage *msg)
     else {
         if (! msg->arrivedOn("socketIn"))
             throw cRuntimeError("Message arrived on unknown gate %s", msg->getArrivalGate()->getFullName());
-        int socketId = -1;
-        if (msg->isPacket()) {
-            auto packet = check_and_cast<Packet *>(msg);
-            socketId = packet->getTag<SocketInd>()->getSocketId();
-        } else {
-            auto indication = check_and_cast<Indication *>(msg);
-            socketId = indication->getTag<SocketInd>()->getSocketId();
-        }
+        auto& tags = getTags(msg);
+        int socketId = tags.getTag<SocketInd>()->getSocketId();
         if (socketId == tunSocketId) {
-        std::cout << __func__ << ":" << __LINE__ << endl;
+            std::cout << __func__ << ":" << __LINE__ << endl;
             // received from tunnel interface
             if (outboundPackets->getLength() == 0) {
                 cEvent *nextMsg = getSimulation()->getScheduler()->guessNextEvent();

@@ -40,7 +40,7 @@ class PacketDrillScript;
 /**
  * Implements the packetdrill application simple module. See the NED file for more info.
  */
-class INET_API PacketDrillApp : public TcpSessionApp
+class INET_API PacketDrillApp : public cSimpleModule, public LifecycleUnsupported
 {
     public:
         PacketDrillApp();
@@ -187,11 +187,6 @@ class INET_API PacketDrillApp : public TcpSessionApp
             simtime_t offset, simtime_t liveTime, const char *description);
 
         void adjustTimes(PacketDrillEvent *event);
-        virtual bool handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback) override
-        {
-            throw cRuntimeError("Unsupported lifecycle operation '%s'", operation->getClassName());
-            return true;
-        }
 };
 
 } // namespace inet
